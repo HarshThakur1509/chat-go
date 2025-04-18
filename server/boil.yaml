@@ -1,0 +1,16 @@
+features:
+    auth: true
+    docker: true
+framework: standard
+handlers:
+    post: user
+name: test
+orm: sqlc
+path: D:\Code\Go\Projects\test
+tables:
+    user:
+        email: string
+        name: string
+        password: string
+        resettoken: string
+        tokenexpiry: time.Time
