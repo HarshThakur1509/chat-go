@@ -18,8 +18,9 @@ export const Login = () => {
   const from = (location.state as LocationState)?.from || "/";
 
   const handleGoogleLogin = () => {
-    // Just call the function that will redirect to Google
-    const link = `http://localhost:3000/auth?provider=google`;
+    // Use the correct callback URL
+    const callbackUrl = window.location.origin + "/auth/google/callback";
+    const link = `http://localhost:3000/auth?provider=google&callback=${encodeURIComponent(callbackUrl)}`;
     googleLogin(link);
   };
 

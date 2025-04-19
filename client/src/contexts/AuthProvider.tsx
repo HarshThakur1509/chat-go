@@ -4,8 +4,9 @@ import { useLocation } from "react-router-dom";
 interface UserData {
   name: string;
   id: string;
+  email?: string;
   // Replace any with a more specific record type for additional properties
-  [key: string]: string | number | boolean | null;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 interface AuthContextType {
@@ -17,7 +18,7 @@ interface AuthContextType {
   logout: () => void;
   authError: string | null;
   clearAuthError: () => void;
-  setGoogleAuthSuccess: (success: boolean) => void;
+  validateAndStoreUser: () => Promise<boolean>;
 }
 
 interface AuthProviderProps {
@@ -33,7 +34,7 @@ export const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   authError: null,
   clearAuthError: () => {},
-  setGoogleAuthSuccess: () => {},
+  validateAndStoreUser: () => Promise.resolve(false),
 });
 
 const API_URL = "http://localhost:3000";
@@ -43,7 +44,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [googleAuthCompleted, setGoogleAuthCompleted] = useState<boolean>(false);
   const location = useLocation();
 
   // Clear error whenever location changes
@@ -55,56 +55,50 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAuthError(null);
   }, []);
 
-  // This function is called when the Google callback component mounts
-  const setGoogleAuthSuccess = useCallback((success: boolean) => {
-    setGoogleAuthCompleted(success);
-  }, []);
+  // Centralized validate and store user function
+  const validateAndStoreUser = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log("Validating user session...");
+      const valRes = await fetch(`${API_URL}/validate`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Include cookies for session authentication
+      });
 
-  // Effect to handle Google auth completion
-  useEffect(() => {
-    if (googleAuthCompleted) {
-      const validateGoogleAuth = async () => {
-        try {
-          const valRes = await fetch(`${API_URL}/validate`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include", // Include cookies if your API uses them
-          });
+      if (!valRes.ok) {
+        console.error("Validation failed:", valRes.status, valRes.statusText);
+        throw new Error("Failed to validate authentication");
+      }
 
-          if (!valRes.ok) {
-            throw new Error("Failed to validate Google authentication");
-          }
+      const valData = await valRes.json();
+      console.log("User validation successful");
 
-          const valData = await valRes.json();
-
-          const userData: UserData = {
-            name: valData.name,
-            id: valData.id,
-          };
-
-          // Store user data in localStorage
-          localStorage.setItem("user_info", JSON.stringify(userData));
-
-          // Update state
-          setUser(userData);
-          setAuthenticated(true);
-        } catch (error) {
-          console.error("Google auth validation error:", error);
-          setAuthError(
-            error instanceof Error ? error.message : "Failed to validate Google authentication."
-          );
-        } finally {
-          // Reset the flag
-          setGoogleAuthCompleted(false);
-        }
+      const userData: UserData = {
+        name: valData.name,
+        id: valData.id.toString(),
+        email: valData.email,
       };
 
-      validateGoogleAuth();
-    }
-  }, [googleAuthCompleted]);
+      // Store user data in localStorage
+      localStorage.setItem("user_info", JSON.stringify(userData));
+      console.log("User data stored in localStorage");
 
-  // Google Login function - just redirects to Google auth
+      // Update state
+      setUser(userData);
+      setAuthenticated(true);
+      return true;
+    } catch (error) {
+      console.error("Auth validation error:", error);
+      setAuthError(
+        error instanceof Error ? error.message : "Failed to validate authentication."
+      );
+      return false;
+    }
+  }, []);
+
+  // Google Login function - redirects to Google auth
   const googleLogin = useCallback((link: string): void => {
+    console.log("Redirecting to Google auth:", link);
     // Simply redirect to the Google auth URL
     window.location.href = link;
   }, []);
@@ -113,12 +107,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       setAuthError(null);
+      console.log("Attempting login with email");
 
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include", // Include cookies if your API uses them
+        credentials: "include", // Include cookies for session authentication
       });
 
       const data = await res.json();
@@ -127,27 +122,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error(data.message || "Login failed");
       }
 
-      const valRes = await fetch(`${API_URL}/validate`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // Include cookies if your API uses them
-      });
-
-      const valData = await valRes.json();
-
-      const userData: UserData = {
-        name: valData.name,
-        id: valData.id,
-      };
-
-      // Store user data in localStorage
-      localStorage.setItem("user_info", JSON.stringify(userData));
-
-      // Update state
-      setUser(userData);
-      setAuthenticated(true);
-
-      return true;
+      console.log("Login successful, validating user");
+      // Use the shared validation function
+      return await validateAndStoreUser();
     } catch (error) {
       console.error("Login error:", error);
       setAuthError(
@@ -155,13 +132,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       );
       return false;
     }
-  }, []);
+  }, [validateAndStoreUser]);
 
   // Logout function
   const logout = useCallback(() => {
+    console.log("Logging out");
     localStorage.removeItem("user_info");
 
-    // Optional: Call logout endpoint if your API has one
+    // Call logout endpoint
     fetch(`${API_URL}/logout`, {
       method: "POST",
       credentials: "include",
@@ -177,13 +155,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const checkAuthStatus = async () => {
       setLoading(true);
       try {
+        console.log("Checking auth status");
         const storedUser = localStorage.getItem("user_info");
 
         if (storedUser) {
+          console.log("Found stored user data, verifying with server");
           const userData: UserData = JSON.parse(storedUser);
 
-          // Optional: Verify token/session with backend
-          // This helps ensure the stored user data is still valid
+          // Verify session with backend
           try {
             const verifyRes = await fetch(`${API_URL}/validate`, {
               method: "GET",
@@ -194,10 +173,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             });
 
             if (verifyRes.ok) {
+              console.log("Session verified");
               // User is authenticated
               setUser(userData);
               setAuthenticated(true);
             } else {
+              console.log("Session invalid or expired");
               // Session expired or invalid, clear local storage
               localStorage.removeItem("user_info");
               setUser(null);
@@ -211,6 +192,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             setAuthenticated(true);
           }
         } else {
+          console.log("No stored user data found");
           // No stored user data
           setUser(null);
           setAuthenticated(false);
@@ -238,7 +220,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     authError,
     clearAuthError,
-    setGoogleAuthSuccess,
+    validateAndStoreUser,
   };
 
   return (
