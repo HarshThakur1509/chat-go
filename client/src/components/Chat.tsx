@@ -233,73 +233,60 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 text-center">
-          {error}
-          <button
-            className="ml-2 underline"
-            onClick={handleReconnect}
-          >
-            Reconnect
-          </button>
-        </div>
-      )}
-
-      <div className="bg-white border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Chat Room</h1>
-        <div className="flex items-center">
-          {/* Add null/undefined check for users array */}
-          <span className="mr-2">
-            {Array.isArray(users) ? users.length : 0} users online
-          </span>
-          <button
-            onClick={() => {
-              closeConn();
-              navigate("/");
-            }}
-            className="px-4 py-1 bg-gray-200 rounded-md hover:bg-gray-300"
-          >
-            Leave
-          </button>
-        </div>
+    <div className="chat-container">
+    {error && (
+      <div className="error-banner">
+        {error}
+        <button onClick={handleReconnect} className="reconnect-button">
+          Reconnect
+        </button>
       </div>
+    )}
 
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-        {!Array.isArray(messages) || messages.length === 0 ? (
-          <div className="flex justify-center items-center h-full text-gray-500">
-            No messages yet. Send the first one!
-          </div>
-        ) : (
-          <ChatBody data={messages} />
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="border-t p-4 bg-white">
-        <div className="flex gap-4">
-          <textarea
-            ref={textareaRef}
-            placeholder="Type your message..."
-            className="flex-1 p-2 border rounded-md resize-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 focus:outline-none min-h-[40px]"
-            rows={1}
-            onChange={autoResizeTextarea}
-            onKeyDown={handleKeyDown}
-            disabled={isSending || connectionStatus !== "open"}
-            style={{ overflow: 'hidden' }}
-          />
-          <button
-            onClick={sendMessage}
-            className={`px-6 py-2 text-white rounded-md ${
-              isSending || connectionStatus !== "open" ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-            disabled={isSending || connectionStatus !== "open"}
-          >
-            {isSending ? "Sending..." : connectionStatus !== "open" ? "Disconnected" : "Send"}
-          </button>
-        </div>
+    <div className="chat-header">
+      <h1>Chat Room</h1>
+      <div className="chat-controls">
+        <span className="online-count">
+          {Array.isArray(users) ? users.length : 0} users online
+        </span>
+        <button
+          onClick={() => {
+            closeConn();
+            navigate("/");
+          }}
+          className="leave-button"
+        >
+          Leave
+        </button>
       </div>
     </div>
+
+    <div className="messages-area">
+      {!Array.isArray(messages) || messages.length === 0 ? (
+        <div className="empty-messages">No messages yet. Send the first one!</div>
+      ) : (
+        <ChatBody data={messages} />
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+
+    <div className="input-container">
+      <textarea
+        ref={textareaRef}
+        className="message-input"
+        placeholder="Type your message..."
+        onChange={autoResizeTextarea}
+        onKeyDown={handleKeyDown}
+      />
+      <button
+        onClick={sendMessage}
+        className="form-button send-button"
+        disabled={isSending || connectionStatus !== "open"}
+      >
+        {isSending ? "Sending..." : connectionStatus !== "open" ? "Disconnected" : "Send"}
+      </button>
+    </div>
+  </div>
   );
 };
 

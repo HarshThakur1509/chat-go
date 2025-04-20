@@ -162,27 +162,27 @@ const Rooms = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="app-container">
+      <div className="rooms-container">
         <h1 className="text-3xl font-bold mb-6">Chat Rooms</h1>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md flex justify-between items-center">
+          <div className="error-banner">
             <span>{error}</span>
             <button
               onClick={() => setError("")}
-              className="text-red-700 hover:text-red-900"
+              className="error-close"
             >
               ✕
             </button>
           </div>
         )}
 
-        <form onSubmit={createRoom} className="flex gap-4 mb-8">
+        <form onSubmit={createRoom} className="auth-form">
           <input
             type="text"
             placeholder="Enter room name"
-            className="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 focus:outline-none"
+            className="form-input"
             value={roomName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setRoomName(e.target.value);
@@ -195,16 +195,14 @@ const Rooms = () => {
           />
           <button
             type="submit"
-            className={`px-6 py-2 text-white rounded-md ${
-              isCreating ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
-            } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+            className={`form-button ${isCreating ? "disabled" : ""}`}
             disabled={!roomName.trim() || isCreating}
           >
             {isCreating ? "Creating..." : "Create Room"}
           </button>
         </form>
 
-        <div className="flex justify-between items-center mb-4">
+        <div className="room-header">
           <h2 className="text-2xl font-bold">Available Rooms</h2>
           <button
             onClick={() => {
@@ -222,56 +220,40 @@ const Rooms = () => {
                   setLoading(false);
                 });
             }}
-            className="text-blue-600 hover:text-blue-800 flex items-center"
+            className="refresh-button"
             disabled={loading}
           >
-            <svg
-              className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            <div className={loading ? "loading-spinner" : ""} />
             Refresh
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center p-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-500">Loading rooms...</p>
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p className="loading-text">Loading rooms...</p>
           </div>
         ) : !Array.isArray(rooms) || rooms.length === 0 ? (
-          <div className="text-center p-8 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-500">No rooms available</p>
-            <p className="text-sm text-gray-400 mt-2">
+          <div className="empty-rooms">
+            <p className="empty-primary">No rooms available</p>
+            <p className="empty-secondary">
               Create a new room to get started
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="room-list">
             {rooms.map((room) => (
               <div
                 key={room.id}
-                className="p-4 border rounded-md flex justify-between items-center hover:bg-gray-50 transition-colors"
+                className="room-item"
               >
-                <div>
-                  <h3 className="font-semibold">{room.name}</h3>
-                  <p className="text-xs text-gray-500">ID: {room.id}</p>
+                <div className="room-info">
+                  <h3 className="room-name">{room.name}</h3>
+                  <p className="room-id">ID: {room.id}</p>
                 </div>
                 <button
                   onClick={() => joinRoom(room.id)}
-                  className={`px-4 py-2 rounded-md ${
-                    isJoining === room.id
-                      ? "bg-green-400 text-white"
-                      : "bg-green-600 text-white hover:bg-green-700"
-                  } transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`form-button ${isJoining === room.id ? "disabled" : ""}`}
                   disabled={isJoining !== null}
                 >
                   {isJoining === room.id ? "Joining..." : "Join"}

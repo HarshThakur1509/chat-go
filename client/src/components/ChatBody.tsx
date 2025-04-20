@@ -54,35 +54,19 @@ const ChatBody = ({ data }: ChatBodyProps) => {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="messages-area">
       {groupedMessages.map((group, groupIndex) => (
-        <div
-          key={`group-${groupIndex}`}
-          className={`flex flex-col ${
-            group.type === "self" ? "items-end" : "items-start"
-          }`}
-        >
-          <div className="text-sm font-medium mb-1 px-1">{group.username}</div>
-          <div className="space-y-1 max-w-[80%]">
+        <div key={`group-${groupIndex}`} className="message-group">
+          <div className="message-username">{group.username}</div>
+          <div className="message-group-content">
             {group.messages.map((msg, msgIndex) => (
-              <div
-                key={`msg-${groupIndex}-${msgIndex}`}
-                className="flex flex-col"
-              >
-                <div
-                  className={`px-4 py-2 rounded-lg ${
-                    group.type === "self"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-800"
-                  }`}
-                >
+              <div key={`msg-${groupIndex}-${msgIndex}`} className="message-container">
+                <div className={`message-bubble ${group.type === "self" ? "message-self" : "message-other"}`}>
                   {msg.content}
+                  {msg.timestamp && (
+                    <div className="message-time">{formatTime(msg.timestamp)}</div>
+                  )}
                 </div>
-                {msg.timestamp && (
-                  <div className="text-xs text-gray-500 mt-1 px-1">
-                    {formatTime(msg.timestamp)}
-                  </div>
-                )}
               </div>
             ))}
           </div>
